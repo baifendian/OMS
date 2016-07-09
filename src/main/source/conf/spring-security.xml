@@ -1,0 +1,157 @@
+<b:beans xmlns="http://www.springframework.org/schema/security"
+		 xmlns:b="http://www.springframework.org/schema/beans"
+		 xmlns:context="http://www.springframework.org/schema/context"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+						http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd ">
+
+	<debug/>
+	<global-method-security pre-post-annotations="enabled"/>
+	<!-- <global-method-security>
+		<protect-pointcut access="ROLE_ADMIN" expression="execution(* com.bfd.security.service.I*Service.*(..))"/>
+	</global-method-security> -->
+	
+	<!-- 这个是我参考的资料 http://lengyun3566.iteye.com/blog/1068998
+		各发布版本下载地址：http://repo.springsource.org/libs-release-local/org/springframework/security/spring-security/
+	 -->
+	
+	<http pattern="/build/**" security="none"/>
+<!-- 	<http pattern="/work/OverTimeOrFalls" security="none"/> -->
+<!-- 	<http pattern="/work/agree" security="none"/> -->
+	
+	<http use-expressions="true" entry-point-ref="sysAuthenticationEntryPoint" 
+			authentication-manager-ref="sysAuthenticationManager">
+		<intercept-url pattern="/login*" access="permitAll"/>
+        <!-- 以上未列出的，必须验证才能访问 -->
+        <intercept-url pattern="/**" access="isAuthenticated()" />
+		<access-denied-handler error-page="/405"/>
+		<csrf />
+		<!-- <http-basic/> <anonymous/> <headers/> -->
+		<!-- 会话管理 session-fixation-protection = changeSessionId, migrateSession, newSession, none -->
+		<!-- <session-management invalid-session-url="/session-expired.htm" session-fixation-protection="newSession">
+			<concurrency-control max-sessions="1" error-if-maximum-exceeded="true" />
+		</session-management> -->
+
+		<session-management session-authentication-strategy-ref="sas" 
+					invalid-session-url="/loginexpired"/>
+		<custom-filter ref="concurrencyFilter" position="CONCURRENT_SESSION_FILTER"/>
+		
+		<custom-filter ref="rememberMeFilter" position="REMEMBER_ME_FILTER"/>
+		
+		<custom-filter ref="logoutFilter" position="LOGOUT_FILTER"/>
+		
+		<custom-filter ref="loginFilter" position="FORM_LOGIN_FILTER"/>
+		
+		<custom-filter ref="sysSecurityFilter" before="FILTER_SECURITY_INTERCEPTOR"/>
+	</http>
+	
+	<!-- ****************************** session-management start ******************************* -->
+	<b:bean id="concurrencyFilter" class="org.springframework.security.web.session.ConcurrentSessionFilter">
+		<b:constructor-arg name="sessionRegistry" ref="sessionRegistry" />
+		<b:constructor-arg name="expiredUrl" value="/loginexpired" />
+	</b:bean>
+	<b:bean id="sas" class="org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy">
+		<b:constructor-arg>
+			<b:list>
+				<b:bean class="org.springframework.security.web.authentication.session.ConcurrentSessionControlAuthenticationStrategy">
+					<b:constructor-arg ref="sessionRegistry" />
+					<b:property name="maximumSessions" value="1000" />
+					<b:property name="exceptionIfMaximumExceeded" value="true" />
+				</b:bean>
+				<b:bean class="org.springframework.security.web.authentication.session.SessionFixationProtectionStrategy">
+					<b:property name="alwaysCreateSession" value="true"/>
+				</b:bean>
+				<b:bean class="org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy">
+					<b:constructor-arg ref="sessionRegistry" />
+				</b:bean>
+			</b:list>
+		</b:constructor-arg>
+	</b:bean>
+	<b:bean id="sessionRegistry" class="org.springframework.security.core.session.SessionRegistryImpl" />
+	<!-- ****************************** session-management end ******************************* -->
+	
+	<!-- 未登录的切入点 -->
+    <b:bean id="sysAuthenticationEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+        <b:constructor-arg name="loginFormUrl" value="/login"/>
+    </b:bean>
+    
+	<!-- 自定义登陆过滤器 -->
+	<b:bean id="loginFilter" init-method="init" class="com.bfd.oms.filter.SysAuthenticationFilter">
+		<b:property name="authenticationManager" ref="sysAuthenticationManager" />
+		<b:property name="sessionAuthenticationStrategy" ref="sas" />
+		<b:property name="rememberMeServices" ref="rememberMeServices"/>
+		<b:property name="filterProcessesUrl" value="/loginCheck" />
+		<!-- 验证成功后要跳转的URL -->
+		<b:property name="successUrl" value="/loginSuccess" />
+		<!-- 验证失败后要跳转的URL -->
+		<b:property name="errorUrl" value="/loginerror" />
+	</b:bean>
+	
+	<!-- 自定义登出过滤器 -->
+	<b:bean id="securityContextLogoutHandler" class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler">
+		<b:property name="invalidateHttpSession" value="false"/>
+	</b:bean>
+	<b:bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
+		<b:constructor-arg name="logoutSuccessUrl" value="/logoutSuccess"/>
+		<b:constructor-arg>
+			<b:list>
+				<b:ref bean="securityContextLogoutHandler"/>
+				<b:ref bean="rememberMeServices"/>
+			</b:list>
+		</b:constructor-arg>
+	</b:bean>
+
+	<!-- ****************************** remember-me start ***************************** -->
+	<!-- 只基于Cookie的remember-me记忆方式的 remember-me服务配置 -->
+	<b:bean id="rememberMeServices" class="org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices">
+		<b:constructor-arg name="key" value="SecurityKey"/>
+		<b:constructor-arg name="userDetailsService" ref="sysUserDetailServiceImpl"/>
+	</b:bean>
+	<!-- 基于服务器内存的remember-me记忆方式 -->
+	<!-- <b:bean id="tokenRepositoryImpl" class="org.springframework.security.web.authentication.rememberme.InMemoryTokenRepositoryImpl"/> -->
+	<!-- 基于数据库的remember-me记忆方式 -->
+	<!-- <b:bean id="tokenRepositoryImpl" class="org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl">
+		<b:property name="createTableOnStartup" value="true"/>
+		<b:property name="dataSource" ref="dataSource"/>
+	</b:bean> -->
+	<!-- remember-me服务的相关参数 -->
+	<!-- <b:bean id="rememberMeServices" class="org.springframework.security.web.authentication.rememberme.PersistentTokenBasedRememberMeServices">
+		<b:constructor-arg name="key" value="mySecurityKey-123456"/>
+		<b:constructor-arg name="userDetailsService" ref="sysUserDetailServiceImpl"/>
+		<b:constructor-arg name="tokenRepository" ref="tokenRepositoryImpl"/>
+	</b:bean> -->
+	<!-- 指定remember-me过滤器的相关参数 -->
+	<b:bean id="rememberMeFilter" class="org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter">
+		<b:constructor-arg name="authenticationManager" ref="sysAuthenticationManager" />
+		<b:constructor-arg name="rememberMeServices" ref="rememberMeServices"/>
+	</b:bean>
+	<!-- **************************** remember-me end ********************************** -->
+    
+    <!-- **************************** AuthenticationManager start ********************************** -->
+    <!-- 登陆密码的加密方法 -->
+	<b:bean id="encoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>
+	<!-- 基本的服务提供者 -->
+	<b:bean id="provider" class="org.springframework.security.authentication.dao.DaoAuthenticationProvider">
+		<b:property name="userDetailsService" ref="sysUserDetailServiceImpl"/>
+		<b:property name="passwordEncoder" ref="encoder"/>
+		<b:property name="hideUserNotFoundExceptions" value="false"/>
+	</b:bean>
+	<!-- remember-me 的服务提供者 -->
+	<b:bean id="rememberMeProvider" class="org.springframework.security.authentication.RememberMeAuthenticationProvider">
+		<b:constructor-arg name="key" value="SecurityKey"/>
+	</b:bean>
+	<!-- 安全框架的认证管理器 -->
+	<b:bean id="sysAuthenticationManager" class="org.springframework.security.authentication.ProviderManager">
+		<b:property name="authenticationEventPublisher">
+			<b:bean class="org.springframework.security.authentication.DefaultAuthenticationEventPublisher"/>
+		</b:property>
+		<b:property name="eraseCredentialsAfterAuthentication" value="false"/>
+		<b:constructor-arg name="providers">
+			<b:list>
+				<b:ref bean="provider"/>
+				<b:ref bean="rememberMeProvider"/>
+			</b:list>
+		</b:constructor-arg>
+	</b:bean>
+</b:beans>

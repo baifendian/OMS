@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration 
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- 命名空间 -->
+	<!-- <typeAliases> <typeAlias alias="User" type="cn.springmvc.model.User"/> 
+		</typeAliases> -->
+
+	<!-- properties?, settings?, typeAliases?, typeHandlers?, objectFactory?, 
+		objectWrapperFactory?, plugins?, environments?, databaseIdProvider?, mappers? -->
+	<!-- 映射map -->
+
+	<plugins>
+		<!-- <plugin interceptor="com.bfd.oms.util.PageHelper"> </plugin> -->
+		<!-- github.miemiedev.mybatis.paginator为PageHelper类所在包名 -->
+		<plugin interceptor="com.bfd.oms.interceptor.OffsetLimitInterceptor"> 
+            <property name="dialectClass" value="com.github.miemiedev.mybatis.paginator.dialect.MySQLDialect"/> 
+        </plugin> 
+
+		
+	</plugins>
+	<mappers>
+	</mappers>
+</configuration>

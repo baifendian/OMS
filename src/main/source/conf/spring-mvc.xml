@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context-4.2.xsd
+    http://www.springframework.org/schema/mvc
+    http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd">
+
+	<!-- 启动Spring MVC的注解功能，完成请求和注解POJO的映射 -->
+	<bean
+		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter" />
+	<!-- 扫描controller（controller层注入） -->
+	<context:component-scan base-package="com.bfd.oms.controller" />
+
+	<mvc:annotation-driven />
+	<mvc:interceptors>
+		<bean class="com.bfd.oms.interceptor.CommonInterceptor" />
+	</mvc:interceptors>
+<!-- 	<bean
+		class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		设置为true以忽略对Accept Header的支持
+		<property name="ignoreAcceptHeader" value="true" />
+		在没有扩展名时即: "/user/1" 时的默认展现形式
+		<property name="defaultContentType" value="text/html; charset=UTF-8" />
+
+		扩展名至mimeType的映射,即 /user.json => application/json
+		<property name="mediaTypes">
+			<map>
+				<entry key="json" value="application/json; charset=UTF-8" />
+				<entry key="xml" value="application/xml; charset=UTF-8" />
+			</map>
+		</property>
+		用于开启 /userinfo/123?format=json 的支持
+		<property name="favorParameter" value="false" />
+		<property name="viewResolvers">
+			<list>
+				<bean class="org.springframework.web.servlet.view.BeanNameViewResolver" />
+				对模型视图添加前后缀
+				<bean
+					class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+					<property name="viewClass"
+						value="org.springframework.web.servlet.view.JstlView" />
+					<property name="prefix" value="/jsp/" />
+					<property name="suffix" value=".jsp"></property>
+				</bean>
+			</list>
+		</property>
+		 <property name="defaultViews">  
+            <list>  
+                for application/json  
+                <bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />   
+                for application/xml  
+               <bean name="xStreamMarshallingView" class="org.springframework.web.servlet.view.xml.MarshallingView">
+					<property name="marshaller">
+						<bean class="org.springframework.oxm.xstream.XStreamMarshaller">
+							启用annotation
+							<property name="autodetectAnnotations" value="true" />
+				       </bean>
+					</property>
+			</bean>  
+            </list>  
+        </property>  
+	</bean> -->
+		
+<bean
+					class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+					<property name="viewClass"
+						value="org.springframework.web.servlet.view.JstlView" />
+					<property name="prefix" value="/" />
+					<property name="suffix" value=".jsp"></property>
+				</bean>
+	<!-- 避免IE在ajax请求时，返回json出现下载 MappingJacksonHttpMessageConverter 新版本为：MappingJackson2HttpMessageConverter -->
+	<bean id="jacksonMessageConverter"
+		class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+		<property name="supportedMediaTypes">
+			<list>
+				<value>text/html;charset=UTF-8</value>
+			</list>
+		</property>
+	</bean>
+
+	
+
+	<mvc:resources location="/image/" mapping="/image/**" />
+	<mvc:resources location="/build/" mapping="/build/**" />
+	<mvc:resources location="/css/" mapping="/css/**" />
+</beans>

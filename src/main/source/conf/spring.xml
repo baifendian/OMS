@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<beans xmlns="http://www.springframework.org/schema/beans"    
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"    
+    xmlns:context="http://www.springframework.org/schema/context"    
+    xmlns:oxm="http://www.springframework.org/schema/oxm"    
+    xmlns:mvc="http://www.springframework.org/schema/mvc"    
+    xmlns:cache="http://www.springframework.org/schema/cache"  
+    xmlns:aop="http://www.springframework.org/schema/aop"  
+    xsi:schemaLocation="http://www.springframework.org/schema/mvc   
+        http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd    
+        http://www.springframework.org/schema/beans   
+        http://www.springframework.org/schema/beans/spring-beans-3.2.xsd    
+        http://www.springframework.org/schema/context   
+        http://www.springframework.org/schema/context/spring-context-3.2.xsd  
+        http://www.springframework.org/schema/cache   
+        http://www.springframework.org/schema/cache/spring-cache.xsd">  
+ 
+ 	<bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+		<property name="basename" value="classpath:org/springframework/security/messages"/>
+	</bean>
+ 	<context:annotation-config/>
+ 	<!-- 支持缓存注解 -->  
+    <cache:annotation-driven cache-manager="cacheManager" />  
+    
+ 	<bean id="cacheManagerFactory" class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean">
+        <property name="configLocation" value="classpath:conf/ehcache.xml"/>
+    </bean>
+    
+    <bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager">
+        <property name="cacheManager" ref="cacheManagerFactory"/>
+    </bean> 
+    
+    <!-- 引入jdbc配置文件 -->
+    <context:property-placeholder file-encoding="utf-8" location="classpath:conf/env.properties"/>
+  
+    <!-- 扫描文件（自动将servicec层注入） -->
+    <context:component-scan base-package="com.bfd.oms.service"/>
+    
+    <context:component-scan  base-package="com.bfd.oms.util"/>
+    <context:component-scan  base-package="com.bfd.oms.filter"/>
+    
+    <bean id="requestFactory"
+		class="org.springframework.http.client.SimpleClientHttpRequestFactory">
+		<property name="connectTimeout" value="3000" />
+	</bean>
+    <bean id="restTemplate" class="org.springframework.web.client.RestTemplate">
+		<constructor-arg ref="requestFactory" />
+		<property name="messageConverters">
+			<list>
+				<bean class="org.springframework.http.converter.FormHttpMessageConverter" />
+				<bean
+					class="org.springframework.http.converter.StringHttpMessageConverter">
+				</bean>
+				<bean
+					class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+					<property name="supportedMediaTypes" value="application/json;charset=UTF-8" />
+				</bean>
+			</list>
+		</property>
+	</bean>
+    
+    
+ <bean id="mailtaskJob" class="com.bfd.oms.util.MailTip" />
+
+  <bean id="jobDetail"
+    class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    <property name="group" value="job_work" />
+    <property name="name" value="job_work_name" />
+     <!--  false表示等上一个任务执行完后再开启新的任务-->
+    <property name="concurrent" value="false" />
+    <property name="targetObject">
+      <ref bean="mailtaskJob" />
+    </property>
+    <property name="targetMethod">
+      <value>run</value>
+    </property>
+  </bean>
+
+  <!--  调度触发器 -->
+  <bean id="mailTrigger"
+    class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+    <property name="name" value="work_default_name" />
+    <property name="group" value="work_default" />
+    <property name="jobDetail">
+      <ref bean="jobDetail" />
+    </property>
+    <property name="cronExpression">
+    <!-- 每天1点开启邮件发送 -->
+      <value>0 0 1 * * ?  </value>
+    </property>
+  </bean>
+
+   <!--  调度工厂 -->
+  <bean id="scheduler"
+    class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+    <property name="triggers">
+      <list>
+        <ref bean="mailTrigger" />
+      </list>
+    </property>
+  </bean>
+
+ <bean id="initMailAddressListener" class="com.bfd.oms.listener.InitMailAddressListener"/>
+</beans>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bfd.oms.dao.MenuMapper" >
+  <resultMap id="BaseResultMap" type="com.bfd.oms.model.Menu" >
+    <id column="menu_id" property="menuId" jdbcType="INTEGER" />
+    <result column="menu_name" property="menuName" jdbcType="VARCHAR" />
+    <result column="menu_type" property="menuType" jdbcType="VARCHAR" />
+    <result column="parent_id" property="parentId" jdbcType="INTEGER" />
+    <result column="res_key" property="resKey" jdbcType="VARCHAR" />
+    <result column="res_url" property="resUrl" jdbcType="VARCHAR" />
+    <result column="description" property="description" jdbcType="VARCHAR" />
+    <result column="status" property="status" jdbcType="INTEGER" />
+    <result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+    <result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+    <result column="create_user" property="createUser" jdbcType="VARCHAR" />
+    <result column="update_user" property="updateUser" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    menu_id, menu_name, menu_type, parent_id, res_key, res_url, description, status, 
+    create_time, update_time, create_user, update_user
+  </sql>
+  <select id="getAllMenu" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    <include refid="Base_Column_List" />
+    from menu where status=1
+  </select>
+  <select id="getUserAuthorities" resultMap="BaseResultMap" parameterType="java.lang.String">
+  select m.res_key from menu m, user u, user_role ur, 
+  menu_role mr where 
+  
+  u.user_name = #{userName,jdbcType=VARCHAR}
+  
+  and u.user_id = ur.user_id 
+  
+  and ur.role_id = mr.role_id and m.menu_id = mr.menu_id
+  and  m.status=1 and u.status=1 and ur.status=1 and mr.status=1
+  
+  </select>
+  
+</mapper>

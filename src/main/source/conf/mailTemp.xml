@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<xml-body>  
+            <div id='main' style='width:98%; height:100%; text-align:center;  
+                margin:3px 26px; background-color:#F5F5F5; border:1px  
+                #E1E1E1 solid;'>  
+               <h1 id='title'></h1>
+			   <table width='98%'  id='tab' cellpadding='1' cellspacing='1' align='center'
+			   text-align='center' style='border:1px #444 dashed'>
+			   <tr id='th'>
+				   <th>开始时间</th>
+				   <th>结束时间</th>
+				   <th>类型</th>
+				   <th>总共（小时）</th>
+				   <th>审批人</th>
+				   
+			   </tr>
+			   </table>
+            </div>
+             <tr id='tr_info'>
+				   <td></td>
+				   <td></td>
+				   <td></td>
+				   <td></td>
+				   <td></td>
+			   </tr>  
+</xml-body>

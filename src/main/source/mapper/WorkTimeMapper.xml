@@ -1,0 +1,633 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bfd.oms.dao.WorkTimeMapper" >
+  <resultMap id="BaseResultMap" type="com.bfd.oms.model.WorkTime" >
+    <id column="worktime_id" property="worktimeId" jdbcType="BIGINT" />
+    <result column="user_name" property="userName" jdbcType="VARCHAR" />
+    <result column="worktime_begin" property="worktimeBegin" jdbcType="TIMESTAMP" />
+    <result column="worktime_end" property="worktimeEnd" jdbcType="TIMESTAMP" />
+    <result column="total" property="total" jdbcType="INTEGER" />
+    <result column="audit_name" property="auditName" jdbcType="VARCHAR" />
+    <result column="audit_status" property="auditStatus" jdbcType="INTEGER" />
+    <result column="type" property="type" jdbcType="INTEGER" />
+    <result column="isUsedCompletely" property="isusedcompletely" jdbcType="INTEGER" />
+    <result column="surplus_total" property="surplusTotal" jdbcType="INTEGER" />
+    <result column="surplus_time_begin" property="surplusTimeBegin" jdbcType="TIMESTAMP" />
+    <result column="surplus_time_end" property="surplusTimeEnd" jdbcType="TIMESTAMP" />
+    <result column="status" property="status" jdbcType="INTEGER" />
+    <result column="mail_id" property="mailId" jdbcType="BIGINT" />
+    <result column="worktime_relation_id" property="worktimeRelationId" jdbcType="BIGINT" />
+    <result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+    <result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+    <result column="create_user" property="createUser" jdbcType="VARCHAR" />
+    <result column="update_user" property="updateUser" jdbcType="VARCHAR" />
+    <result column="content" property="content" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    worktime_id, user_name, worktime_begin, worktime_end, total, audit_name, audit_status, type, isUsedCompletely, 
+    surplus_total, surplus_time_begin, surplus_time_end, status, mail_id, worktime_relation_id, 
+    create_time, update_time, create_user, update_user
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    w.*,m.content as content
+    from worktime w left join mail m on m.mail_id = w.mail_id
+    where w.worktime_id = #{worktimeId,jdbcType=BIGINT}
+  </select>
+  
+  <sql id="willLostWorkTime">
+  
+		SELECT
+			CASE
+		WHEN w.isUsedCompletely = 0 <!-- 判断 未调休过的加班 时间是否 小于 用户设置的提醒时间 -->
+		AND w.worktime_begin &lt;= DATE_SUB(
+			DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+			INTERVAL (da.days - us.remind_time) DAY
+		) <!-- 判断 未调休过的加班 时间是否 大于 6个月前的时间 -->
+		AND w.worktime_begin >= DATE_SUB(
+			DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+			INTERVAL 6 MONTH
+		) THEN
+			w.worktime_id
+		WHEN w.isUsedCompletely = 1 <!-- 判断 未调休完的加班 时间是否 小于 用户设置的提醒时间 -->
+		AND w.surplus_time_begin &lt;= DATE_SUB(
+			DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+			INTERVAL (da.days - us.remind_time) DAY
+		) <!-- 判断 未调休完的加班 时间是否 大于 6个月前的时间 -->
+		AND w.surplus_time_begin >= DATE_SUB(
+			DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+			INTERVAL 6 MONTH
+		) THEN
+			w.worktime_id
+		END id
+		FROM
+			<!-- 获取6个月一共多少天 --> (
+				SELECT
+					TIMESTAMPDIFF(
+						DAY,
+						DATE_SUB(
+							DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+							INTERVAL 6 MONTH
+						),
+						DATE_FORMAT(SYSDATE(), '%Y-%m-%d')
+					) days
+				FROM
+					DUAL
+			) da,
+			user us
+		LEFT JOIN worktime w ON us.user_name = w.user_name
+		AND us. STATUS = 1
+		AND w. STATUS = 1
+		AND w.type = 0
+		AND w.audit_status = 1
+		WHERE
+			w.worktime_id IS NOT NULL
+				
+		  
+  </sql>
+  
+  <select id="getMailTip" resultMap="BaseResultMap">
+	SELECT
+	 <include refid="Base_Column_List" />
+	FROM
+		worktime nw
+	WHERE
+		nw.worktime_id IN (
+		<include refid="willLostWorkTime"/>
+		)
+	ORDER  BY nw.user_name
+  </select>
+  
+  <select id="PageQuery" resultMap="BaseResultMap" parameterType="java.util.Map">
+    select 
+    <include refid="Base_Column_List" />
+    from worktime
+    <where>
+        status = 1 
+    	<if test="worktimeBegin!=null and worktimeBegin!=''">
+    	    and #{worktimeBegin} >= worktime_begin   
+    	</if>
+    	<if test="worktimeEnd!=null and worktimeEnd!=''">
+    	   and  worktime_end >= #{worktimeEnd}
+    	</if>
+    	<if test="type!=null and type!=''">
+    	   and  type = #{type}
+    	</if>
+    	<if test="auditName!=null and auditName!=''">
+    	   and  audit_name like CONCAT('%',#{auditName},'%' )
+    	</if>
+    	<if test="userName!=null and userName!=''">
+    	   and  user_name like CONCAT('%',#{userName},'%' )
+    	</if>
+    	<if test="auditStatus!=null and auditStatus!=''">
+    	   and  audit_status = #{auditStatus}
+    	</if>
+    </where>
+    ORDER BY  worktime_id DESC
+  </select>
+  
+  <!-- 个人加班多少小时总和 -->
+  <select id="totalDay" parameterType="java.util.Map" resultType="java.util.Map">
+       select sum(total) as totalDay from worktime 
+       where type = 0 and user_name = #{userName} 
+       and worktime_begin >= DATE_SUB(
+				DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+				INTERVAL 6 MONTH
+			)
+       and status = 1
+       AND audit_status=1
+  </select>
+  
+  <!-- 个人可调休多少小时总和 -->
+   <select id="restDay" parameterType="java.util.Map"  resultType="java.util.Map">
+      select IFNULL(sum(total),0) as restDay  from worktime 
+      where isUsedCompletely = 0  and user_name = #{userName} 
+      and status = 1
+      and type=0
+      and worktime_begin >= DATE_SUB(
+				DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+				INTERVAL 6 MONTH
+			)
+	AND audit_status=1
+  </select>
+  
+  <!-- 个人拆分过的剩余小时总和 -->
+  <select id="surplusDay" parameterType="java.util.Map" resultType="java.util.Map">
+       select IFNULL(sum(surplus_total),0) as surplusDay  from worktime 
+       where isUsedCompletely = 1  
+       and type=0
+       and user_name = #{userName} 
+       and status = 1
+        and surplus_time_begin >= DATE_SUB(
+				DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+				INTERVAL 6 MONTH
+			)
+		AND audit_status=1
+  </select>
+  
+  <!-- 即将过期的小时数 -->
+  <select id="WillExpire" parameterType="java.util.Map" resultType="java.util.Map">
+     SELECT
+	sum(nw.total) WillExpire
+FROM
+	(
+		SELECT
+			CASE
+		WHEN w.isUsedCompletely = 0
+		AND w.worktime_begin &lt;= DATE_SUB(
+			DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+			INTERVAL (da.days - us.remind_time) DAY
+		)
+		AND w.worktime_begin >= DATE_SUB(
+			DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+			INTERVAL 6 MONTH
+		) THEN
+			w.total
+		WHEN w.isUsedCompletely = 1
+		AND w.surplus_time_begin &lt;= DATE_SUB(
+			DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+			INTERVAL (da.days - us.remind_time) DAY
+		)
+		AND w.surplus_time_begin >= DATE_SUB(
+			DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+			INTERVAL 6 MONTH
+		) THEN
+			w.surplus_total
+		END total
+		FROM
+			(
+				SELECT
+					TIMESTAMPDIFF(
+						DAY,
+						DATE_SUB(
+							DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+							INTERVAL 6 MONTH
+						),
+						DATE_FORMAT(SYSDATE(), '%Y-%m-%d')
+					) days
+				FROM
+					DUAL
+			) da,
+			user us
+		LEFT JOIN worktime w ON us.user_name = w.user_name
+		AND us. STATUS = 1
+		AND w. STATUS = 1
+		AND w.type = 0
+		AND w.audit_status = 1
+		WHERE
+			w.worktime_id IS NOT NULL
+			<if test="userName!=null and userName!=''">
+    	   		and  w.user_name = #{userName}
+    		</if>
+			)nw
+	
+  </select>
+  
+  <!-- 已调休的小时数总和  -->
+  <select id="useHoliday" parameterType="java.util.Map" resultType="java.util.Map">
+       select IFNULL(sum(total),0) as useHoliday from worktime where isUsedCompletely = 2
+       and status = 1 
+       and type=2
+       and user_name = #{userName}
+       AND audit_status=1
+       and worktime_begin >= DATE_SUB(
+				DATE_FORMAT(SYSDATE(), '%Y-%m-%d'),
+				INTERVAL 6 MONTH
+			)
+  </select>
+  
+  <!-- 正在调休的小时数总和  -->
+  <select id="holidaing" parameterType="java.util.Map" resultType="java.util.Map">
+       select IFNULL(sum(total),0) as holidaing from worktime where type = 2
+       and status = 1 
+       and user_name = #{userName}
+       and SYSDATE()>=worktime_begin 
+       and worktime_end>SYSDATE()
+       and audit_status = 1
+  </select>
+  
+  <!-- #加班数，剩余调休数》已用调休》处于调休中 -->
+  <select id="PageEmployeeCenter" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+   tm.user_name userName,
+	IFNULL(sum(tm.total),0) AS total,
+	IFNULL(sum(tm.mayUsed),0) AS mayUsed,
+	IFNULL(sum(tm.hasUsed),0) AS hasUsed,
+	IFNULL(sum(tm.inUsed),0) AS inUsed,
+	IFNULL(sum(tm.willLost),0) AS willLost
+FROM
+	(
+		SELECT
+			CASE
+		WHEN type = 0 THEN
+			total
+		END total,
+		CASE
+	WHEN isUsedCompletely = 0
+	AND type = 0 THEN
+		total
+	WHEN isUsedCompletely = 1
+	AND type = 0 THEN
+		surplus_total
+	END mayUsed,
+	CASE
+WHEN isUsedCompletely = 2
+AND type = 0 THEN
+	total
+END hasUsed,
+ CASE
+WHEN type = 0
+AND worktime_begin &lt;= SYSDATE()
+AND worktime_end >= SYSDATE() THEN
+	total
+END inUsed,
+ user_name,
+ CASE
+WHEN type = 0
+AND isUsedCompletely = 0
+AND DATE_SUB(SYSDATE(), INTERVAL 6 MONTH)&lt;=worktime_begin
+AND DATE_SUB(SYSDATE(), INTERVAL 5 MONTH) >= worktime_begin THEN
+	total
+WHEN type = 0
+AND isUsedCompletely = 1
+AND DATE_SUB(SYSDATE(), INTERVAL 6 MONTH)&lt;=surplus_time_begin
+AND DATE_SUB(SYSDATE(), INTERVAL 5 MONTH)>= surplus_time_begin THEN
+	surplus_total
+END willLost
+FROM
+	worktime
+WHERE
+	STATUS = 1 and audit_status=1
+	<if test="userName!=null and userName!=''">
+    	   and  user_name = #{userName}
+    </if>
+    <if test="worktimeBegin!=null and worktimeBegin!=''">
+    	   and  worktime_begin &lt;= #{worktimeBegin}
+    </if>
+    <if test="worktimeEnd!=null and worktimeEnd!=''">
+    	   and  worktime_end >= #{worktimeEnd}
+    </if>
+    <if test="type!=null and type!=''">
+    	   and  type = #{type}
+    </if>
+    <if test="auditName!=null and auditName!=''">
+    	   and  audit_name like CONCAT('%',#{auditName},'%')
+    </if>
+    <if test="auditStatus!=null and auditStatus!=''">
+    	   and audit_status = #{auditStatus}
+    </if>
+	) tm
+GROUP BY
+	tm.user_name
+  </select>
+  
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long" >
+    delete from worktime
+    where worktime_id = #{worktimeId,jdbcType=BIGINT}
+  </delete>
+  <insert id="insert" parameterType="com.bfd.oms.model.WorkTime" >
+    insert into worktime (worktime_id, user_name, worktime_begin, 
+      worktime_end, total, audit_name, 
+      type, isUsedCompletely, surplus_total, 
+      surplus_time_begin, surplus_time_end, status, 
+      mail_id, worktime_relation_id, create_time, 
+      update_time, create_user, update_user
+      )
+    values (#{worktimeId,jdbcType=BIGINT}, #{userName,jdbcType=VARCHAR}, #{worktimeBegin,jdbcType=TIMESTAMP}, 
+      #{worktimeEnd,jdbcType=TIMESTAMP}, #{total,jdbcType=INTEGER}, #{auditName,jdbcType=VARCHAR}, 
+      #{type,jdbcType=INTEGER}, #{isusedcompletely,jdbcType=INTEGER}, #{surplusTotal,jdbcType=INTEGER}, 
+      #{surplusTimeBegin,jdbcType=TIMESTAMP}, #{surplusTimeEnd,jdbcType=TIMESTAMP}, #{status,jdbcType=INTEGER}, 
+      #{mailId,jdbcType=BIGINT}, #{worktimeRelationId,jdbcType=BIGINT}, #{createTime,jdbcType=TIMESTAMP}, 
+      #{updateTime,jdbcType=TIMESTAMP}, #{createUser,jdbcType=VARCHAR}, #{updateUser,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.bfd.oms.model.WorkTime" >
+    insert into worktime
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="worktimeId != null" >
+        worktime_id,
+      </if>
+      <if test="userName != null" >
+        user_name,
+      </if>
+      <if test="worktimeBegin != null" >
+        worktime_begin,
+      </if>
+      <if test="worktimeEnd != null" >
+        worktime_end,
+      </if>
+      <if test="total != null" >
+        total,
+      </if>
+      <if test="auditName != null" >
+        audit_name,
+      </if>
+      <if test="type != null" >
+        type,
+      </if>
+      <if test="isusedcompletely != null" >
+        isUsedCompletely,
+      </if>
+      <if test="surplusTotal != null" >
+        surplus_total,
+      </if>
+      <if test="surplusTimeBegin != null" >
+        surplus_time_begin,
+      </if>
+      <if test="surplusTimeEnd != null" >
+        surplus_time_end,
+      </if>
+      <if test="status != null" >
+        status,
+      </if>
+      <if test="mailId != null" >
+        mail_id,
+      </if>
+      <if test="worktimeRelationId != null" >
+        worktime_relation_id,
+      </if>
+      <if test="createTime != null" >
+        create_time,
+      </if>
+      <if test="updateTime != null" >
+        update_time,
+      </if>
+      <if test="createUser != null" >
+        create_user,
+      </if>
+      <if test="updateUser != null" >
+        update_user,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="worktimeId != null" >
+        #{worktimeId,jdbcType=BIGINT},
+      </if>
+      <if test="userName != null" >
+        #{userName,jdbcType=VARCHAR},
+      </if>
+      <if test="worktimeBegin != null" >
+        #{worktimeBegin,jdbcType=TIMESTAMP},
+      </if>
+      <if test="worktimeEnd != null" >
+        #{worktimeEnd,jdbcType=TIMESTAMP},
+      </if>
+      <if test="total != null" >
+        #{total,jdbcType=INTEGER},
+      </if>
+      <if test="auditName != null" >
+        #{auditName,jdbcType=VARCHAR},
+      </if>
+      <if test="type != null" >
+        #{type,jdbcType=INTEGER},
+      </if>
+      <if test="isusedcompletely != null" >
+        #{isusedcompletely,jdbcType=INTEGER},
+      </if>
+      <if test="surplusTotal != null" >
+        #{surplusTotal,jdbcType=INTEGER},
+      </if>
+      <if test="surplusTimeBegin != null" >
+        #{surplusTimeBegin,jdbcType=TIMESTAMP},
+      </if>
+      <if test="surplusTimeEnd != null" >
+        #{surplusTimeEnd,jdbcType=TIMESTAMP},
+      </if>
+      <if test="status != null" >
+        #{status,jdbcType=INTEGER},
+      </if>
+      <if test="mailId != null" >
+        #{mailId,jdbcType=BIGINT},
+      </if>
+      <if test="worktimeRelationId != null" >
+        #{worktimeRelationId,jdbcType=BIGINT},
+      </if>
+      <if test="createTime != null" >
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null" >
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createUser != null" >
+        #{createUser,jdbcType=VARCHAR},
+      </if>
+      <if test="updateUser != null" >
+        #{updateUser,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.bfd.oms.model.WorkTime" >
+    update worktime
+    <set >
+      <if test="userName != null" >
+        user_name = #{userName,jdbcType=VARCHAR},
+      </if>
+      <if test="worktimeBegin != null" >
+        worktime_begin = #{worktimeBegin,jdbcType=TIMESTAMP},
+      </if>
+      <if test="worktimeEnd != null" >
+        worktime_end = #{worktimeEnd,jdbcType=TIMESTAMP},
+      </if>
+      <if test="total != null" >
+        total = #{total,jdbcType=INTEGER},
+      </if>
+     <if test="auditName != null" >
+        audit_name = #{auditName,jdbcType=VARCHAR},
+      </if>
+      <if test="auditStatus != null" >
+        audit_status = #{auditStatus,jdbcType=VARCHAR},
+      </if>
+      <if test="type != null" >
+        type = #{type,jdbcType=INTEGER},
+      </if>
+      <if test="isusedcompletely != null" >
+        isUsedCompletely = #{isusedcompletely,jdbcType=INTEGER},
+      </if>
+      <if test="surplusTotal != null" >
+        surplus_total = #{surplusTotal,jdbcType=INTEGER},
+      </if>
+      <if test="surplusTimeBegin != null" >
+        surplus_time_begin = #{surplusTimeBegin,jdbcType=TIMESTAMP},
+      </if>
+      <if test="surplusTimeEnd != null" >
+        surplus_time_end = #{surplusTimeEnd,jdbcType=TIMESTAMP},
+      </if>
+      <if test="status != null" >
+        status = #{status,jdbcType=INTEGER},
+      </if>
+      <if test="mailId != null" >
+        mail_id = #{mailId,jdbcType=BIGINT},
+      </if>
+      <if test="worktimeRelationId != null" >
+        worktime_relation_id = #{worktimeRelationId,jdbcType=BIGINT},
+      </if>
+      <if test="createTime != null" >
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null" >
+        update_time = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createUser != null" >
+        create_user = #{createUser,jdbcType=VARCHAR},
+      </if>
+      <if test="updateUser != null" >
+        update_user = #{updateUser,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where worktime_id = #{worktimeId,jdbcType=BIGINT}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.bfd.oms.model.WorkTime" >
+    update worktime
+    set user_name = #{userName,jdbcType=VARCHAR},
+      worktime_begin = #{worktimeBegin,jdbcType=TIMESTAMP},
+      worktime_end = #{worktimeEnd,jdbcType=TIMESTAMP},
+      total = #{total,jdbcType=INTEGER},
+      audit_name = #{auditName,jdbcType=VARCHAR},
+      type = #{type,jdbcType=INTEGER},
+      isUsedCompletely = #{isusedcompletely,jdbcType=INTEGER},
+      surplus_total = #{surplusTotal,jdbcType=INTEGER},
+      surplus_time_begin = #{surplusTimeBegin,jdbcType=TIMESTAMP},
+      surplus_time_end = #{surplusTimeEnd,jdbcType=TIMESTAMP},
+      status = #{status,jdbcType=INTEGER},
+      mail_id = #{mailId,jdbcType=BIGINT},
+      worktime_relation_id = #{worktimeRelationId,jdbcType=BIGINT},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      update_time = #{updateTime,jdbcType=TIMESTAMP},
+      create_user = #{createUser,jdbcType=VARCHAR},
+      update_user = #{updateUser,jdbcType=VARCHAR}
+    where worktime_id = #{worktimeId,jdbcType=BIGINT}
+  </update>
+  
+  <select id="getMayUsedTime"  resultMap="BaseResultMap" parameterType="com.bfd.oms.model.WorkTime">
+	  SELECT
+		worktime_id,
+		worktime_begin,
+		worktime_end,
+		isUsedCompletely,
+		surplus_time_begin,
+		surplus_time_end,
+		CASE
+	WHEN isUsedCompletely = 0
+	AND type = 0 THEN
+		total
+	WHEN isUsedCompletely = 1
+	AND type = 0 THEN
+		surplus_total
+	END total,
+	 user_name
+	FROM
+		worktime
+	WHERE
+		STATUS = 1
+	AND audit_status = 1
+	and isUsedCompletely in (0,1)
+	AND type = 0
+	 <if test="userName != null" >
+      and  user_name = #{userName,jdbcType=VARCHAR}
+      </if>
+	ORDER BY worktime_begin ASC
+  </select>
+  
+   
+
+	<update id="updataList" >
+       <foreach collection="list"  item="item"  separator=";">
+                update worktime 
+               <set >
+      <if test="item.userName != null" >
+        user_name = #{item.userName,jdbcType=VARCHAR},
+      </if>
+      <if test="item.worktimeBegin != null" >
+        worktime_begin = #{item.worktimeBegin,jdbcType=TIMESTAMP},
+      </if>
+      <if test="item.worktimeEnd != null" >
+        worktime_end = #{item.worktimeEnd,jdbcType=TIMESTAMP},
+      </if>
+      <if test="item.total != null" >
+        total = #{item.total,jdbcType=INTEGER},
+      </if>
+      <if test="item.auditName != null" >
+        audit_name = #{item.auditName,jdbcType=VARCHAR},
+      </if>
+      <if test="item.type != null" >
+        type = #{item.type,jdbcType=INTEGER},
+      </if>
+      <if test="item.isusedcompletely != null" >
+        isUsedCompletely = #{item.isusedcompletely,jdbcType=INTEGER},
+      </if>
+      <if test="item.surplusTotal != null" >
+        surplus_total = #{item.surplusTotal,jdbcType=INTEGER},
+      </if>
+      <if test="item.surplusTimeBegin != null" >
+        surplus_time_begin = #{item.surplusTimeBegin,jdbcType=TIMESTAMP},
+      </if>
+      <if test="item.surplusTimeEnd != null" >
+        surplus_time_end = #{item.surplusTimeEnd,jdbcType=TIMESTAMP},
+      </if>
+      <if test="item.status != null" >
+        status = #{item.status,jdbcType=INTEGER},
+      </if>
+      <if test="item.mailId != null" >
+        mail_id = #{item.mailId,jdbcType=BIGINT},
+      </if>
+      <if test="item.worktimeRelationId != null" >
+        worktime_relation_id = #{item.worktimeRelationId,jdbcType=BIGINT},
+      </if>
+      <if test="item.createTime != null" >
+        create_time = #{item.createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="item.updateTime != null" >
+        update_time = #{item.updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="item.createUser != null" >
+        create_user = #{item.createUser,jdbcType=VARCHAR},
+      </if>
+      <if test="item.updateUser != null" >
+        update_user = #{item.updateUser,jdbcType=VARCHAR},
+      </if>
+    </set>
+           where worktime_id = #{item.worktimeId}
+       </foreach>
+    </update>
+  
+</mapper>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bfd.oms.dao.MailMapper" >
+  <resultMap id="ResultMapWithBLOBs" type="com.bfd.oms.model.MailWithBLOBs"  >
+    <result column="content" property="content" jdbcType="LONGVARCHAR" />
+    <result column="receive_users" property="receiveUsers" jdbcType="LONGVARCHAR" />
+    <result column="copy_user" property="copyUser" jdbcType="LONGVARCHAR" />
+     <result column="mail_id" property="mailId" jdbcType="BIGINT" />
+    <result column="type" property="type" jdbcType="INTEGER" />
+    <result column="status" property="status" jdbcType="INTEGER" />
+    <result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+    <result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+    <result column="create_user" property="createUser" jdbcType="VARCHAR" />
+    <result column="update_user" property="updateUser" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Blob_Column_List" >
+    content, receive_users, copy_user
+  </sql>
+  <insert id="insert"  >
+    insert into mail (mail_id, type, status, 
+      create_time, update_time, create_user, 
+      update_user, content, receive_users, 
+      copy_user)
+    values (#{mailId,jdbcType=BIGINT}, #{type,jdbcType=INTEGER}, #{status,jdbcType=INTEGER}, 
+      #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, #{createUser,jdbcType=VARCHAR}, 
+      #{updateUser,jdbcType=VARCHAR}, #{content,jdbcType=LONGVARCHAR}, #{receiveUsers,jdbcType=LONGVARCHAR}, 
+      #{copyUser,jdbcType=LONGVARCHAR})
+  </insert>
+  <insert id="insertSelective" parameterType="com.bfd.oms.model.MailWithBLOBs" useGeneratedKeys="true" keyProperty="mailId" >
+    insert into mail
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="mailId != null" >
+        mail_id,
+      </if>
+      <if test="type != null" >
+        type,
+      </if>
+      <if test="status != null" >
+        status,
+      </if>
+      <if test="createTime != null" >
+        create_time,
+      </if>
+      <if test="updateTime != null" >
+        update_time,
+      </if>
+      <if test="createUser != null" >
+        create_user,
+      </if>
+      <if test="updateUser != null" >
+        update_user,
+      </if>
+      <if test="content != null" >
+        content,
+      </if>
+      <if test="receiveUsers != null" >
+        receive_users,
+      </if>
+      <if test="copyUser != null" >
+        copy_user,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="mailId != null" >
+        #{mailId,jdbcType=BIGINT},
+      </if>
+      <if test="type != null" >
+        #{type,jdbcType=INTEGER},
+      </if>
+      <if test="status != null" >
+        #{status,jdbcType=INTEGER},
+      </if>
+      <if test="createTime != null" >
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null" >
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createUser != null" >
+        #{createUser,jdbcType=VARCHAR},
+      </if>
+      <if test="updateUser != null" >
+        #{updateUser,jdbcType=VARCHAR},
+      </if>
+      <if test="content != null" >
+        #{content,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="receiveUsers != null" >
+        #{receiveUsers,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="copyUser != null" >
+        #{copyUser,jdbcType=LONGVARCHAR},
+      </if>
+    </trim>
+  </insert>
+</mapper>
