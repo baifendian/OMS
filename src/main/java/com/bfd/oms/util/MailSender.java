@@ -22,7 +22,6 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimeUtility;
 
-import com.bfd.oms.model.Mail;
 import com.bfd.oms.model.WorkTime;
 
 public class MailSender {
@@ -300,11 +299,8 @@ public class MailSender {
     		body.append("<td>"+aduit_name+"</td>");
     	}
     	 
-    	
-    			 
     	String end =  "</tr>"
     			+ "</table>"; 
-    	
     	body.append(end);
     	
     	mailSender.setContent(body.toString());
