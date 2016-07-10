@@ -98,4 +98,5 @@ public class DateUtil {
 	public static Date getStringToDate(String date) {
 		return getStringToDate(dateFormat, date);
 	}
+	
 }
