@@ -262,7 +262,7 @@ public class WorkTimeController extends BaseController {
 		
 		
 		if (flag) {
-			MailSender.sendMail(work);
+			MailSender.sendMail(work,getLoginData(request).getPassword());
 		}
 		return new Result(flag);
 	}
@@ -317,6 +317,7 @@ public class WorkTimeController extends BaseController {
 	public Object OverTimeOrFalls(HttpServletRequest req){
 		Map<String, Object> map=getParameterMap(req);
 		WorkTime work = new WorkTime();
+		
 		work.setType(Integer.parseInt(map.get("type").toString()));
 		work.setUserName(map.get("userName").toString());
 		work.setAuditName(map.get("auditName").toString());
@@ -382,7 +383,7 @@ public class WorkTimeController extends BaseController {
         boolean b = worktime.OverTimeOrFalls(work);
          
         if(b){
-        	MailSender.sendMail(work);
+        	MailSender.sendMail(work,getLoginData(request).getPassword());
         }
 		return new Result(b);
  

@@ -246,11 +246,11 @@ public class MailSender {
     }  
       
     
-    public static boolean sendMail(WorkTime work){
+    public static boolean sendMail(WorkTime work, String pwd){
     	MailSenderInfo mailSender = new MailSenderInfo();
     	SimpleDateFormat simp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    	mailSender.setUserName("jun.wu@baifendian.com");  
-    	mailSender.setPassword("ROMb5399ww");
+    	mailSender.setUserName(work.getUserName());  // eg:jun.wu@baifendian.com
+    	mailSender.setPassword(pwd); // eg: 123456
     	mailSender.setFromAddress("jun.wu@baifendian.com");
     	mailSender.setToAddress(new String[]{"jun.wu@baifendian.com"});
     	mailSender.setToCarbonCopyAddress(new String[]{"mingyi.yu@baifendian.com"});
