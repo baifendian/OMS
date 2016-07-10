@@ -99,16 +99,5 @@ public class DateUtil {
 		return getStringToDate(dateFormat, date);
 	}
 
-	public static void main(String[] args) {
-//		System.err.println(getFormatDate());
-		int j[] = {1,2,3,4,4};
-		int k = 8;
-		for(int i : j){
-			k = k-i;
-			if(k<0){
-				break;
-			}
-		}
-		System.out.println(k);
-	}
+	 
 }
