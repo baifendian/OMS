@@ -55,7 +55,9 @@ public class PersonalCenterController extends BaseController {
 			users = user.querySingleUser(loginData.getUsername());
 		}
 		if (users.size() > 0) {
-			return new Result(users.get(0));
+			Users use=users.get(0);
+			use.setUserPassword(null);
+			return new Result();
 		}
 		else {
 			return new Result(500, "用户不存在！");
