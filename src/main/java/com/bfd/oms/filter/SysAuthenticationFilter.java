@@ -75,52 +75,47 @@ public class SysAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 			// code:1为异常0：为正常
 			code = jsonObj.getString("code");
 		}
- 
-		// 用户信息获取以及更新
+		
 		LoginData loginData = getUser(username, password);
-		// 保存到session
-		request.getSession().setAttribute("user_login_user", loginData);
-		// 保存到cache
-		CacheHelper.setValue(CacheHelper.CACHE_LOGIN_USER_NAME, username, loginData);
-		/*if (code!=null&&code.equals("0")) {
- 
-		if (code!=null&&code.equals("0")) {
-			// 用户信息获取以及更新
-			LoginData loginData = getUser(username, password);
-			// 保存到session
-			request.getSession().setAttribute("user_login_user", loginData);
+		if (loginData != null) {
+			// 保存到删除已有的
+			CacheHelper.removePreKey(CacheHelper.CACHE_LOGIN_USER_NAME, username);
 			// 保存到cache
-			CacheHelper.setValue(CacheHelper.CACHE_LOGIN_USER_NAME, username, loginData);
- 
-		// 用户信息获取以及更新
-		try {
-			LoginData loginData = getUser(username, password);
-			if (loginData != null) {
-				// 保存到删除已有的
-				CacheHelper.removePreKey(CacheHelper.CACHE_LOGIN_USER_NAME, username);
-				// 保存到cache
-				CacheHelper.setValue(CacheHelper.CACHE_LOGIN_USER_NAME, username, loginData.clone());
-				
-				// 保存到session的密码不加密
-				loginData.setPassword(password);
-				// 保存到session
-				request.getSession().setAttribute(GlobalVariable.LOGIN_SESSION_Id, loginData);
+			CacheHelper.setValue(CacheHelper.CACHE_LOGIN_USER_NAME, username, loginData.clone());
+			
+			// 保存到session的密码不加密
+			loginData.setPassword(password);
+			// 保存到session
+			request.getSession().setAttribute(GlobalVariable.LOGIN_SESSION_Id, loginData);
+		}
+		
+		//以下为生产环境使用（79到90行代码请注释）
+		/*if (code != null && code.equals("0")) {
+			// 用户信息获取以及更新
+			try {
+				LoginData loginData = getUser(username, password);
+				if (loginData != null) {
+					// 保存到删除已有的
+					CacheHelper.removePreKey(CacheHelper.CACHE_LOGIN_USER_NAME, username);
+					// 保存到cache
+					CacheHelper.setValue(CacheHelper.CACHE_LOGIN_USER_NAME, username, loginData.clone());
+					
+					// 保存到session的密码不加密
+					loginData.setPassword(password);
+					// 保存到session
+					request.getSession().setAttribute(GlobalVariable.LOGIN_SESSION_Id, loginData);
+				}
 			}
-		}
-		catch (Exception e) {
-			logger.info(e);
-			BadCredentialsException exception = new BadCredentialsException("登录异常");// 在界面输出自定义的信息！！
-			throw exception;
-		}
- 
-
-		if (code != null && code.equals("0")) {
-
+			catch (Exception e) {
+				logger.info(e);
+				BadCredentialsException exception = new BadCredentialsException("登录异常");// 在界面输出自定义的信息！！
+				throw exception;
+			}
 		}
 		else {
 			BadCredentialsException exception = new BadCredentialsException("用户验证失败");// 在界面输出自定义的信息！！
 			logger.error(exception);
-			// throw exception;
+			throw exception;
 		}*/
 
 	}
