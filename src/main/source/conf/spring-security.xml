@@ -56,7 +56,7 @@
 			<b:list>
 				<b:bean class="org.springframework.security.web.authentication.session.ConcurrentSessionControlAuthenticationStrategy">
 					<b:constructor-arg ref="sessionRegistry" />
-					<b:property name="maximumSessions" value="1000" />
+					<b:property name="maximumSessions" value="1" />
 					<b:property name="exceptionIfMaximumExceeded" value="true" />
 				</b:bean>
 				<b:bean class="org.springframework.security.web.authentication.session.SessionFixationProtectionStrategy">
