@@ -338,6 +338,7 @@ public class WorkTimeController extends BaseController {
 		work.setCreateUser(loginData.getUsername());
 		work.setUserName(loginData.getUsername());
 		work.setCreateTime(new Date());
+		//这个为测试数据 正式环境请将342行和343行代码注释
 		work.getMailwithblobs().setReceiveUsers("mingyi.yu@baifendian.com");
 		work.getMailwithblobs().setCopyUser("xinyi.zhu@baifendian.com");
 		work.getMailwithblobs().setCreateUser(loginData.getUsername());
